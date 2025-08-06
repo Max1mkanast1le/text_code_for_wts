@@ -15,7 +15,7 @@ class CatalogScreen extends StatelessWidget { // <-- Теперь это Statele
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductListScreen(
+        builder: (context) => ProductListScreenWrapper( // <-- НОВЫЙ ВЫЗОВ
           categoryId: category.id,
           categoryName: category.name,
         ),

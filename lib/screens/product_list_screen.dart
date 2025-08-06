@@ -1,121 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/product_model.dart';
-import '../api/api_service.dart';
+import '../view_models/product_list_view_model.dart';
 import '../widgets/product_list_item.dart';
 import 'product_detail_screen.dart';
-// '../api/api_service_production.dart';
 
-class ProductListScreen extends StatefulWidget {
-  static const routeName = '/product-list';
+// 1. Делаем виджет-обертку, которая будет создавать Provider
+class ProductListScreenWrapper extends StatelessWidget {
   final int? categoryId;
   final String? categoryName;
 
-  const ProductListScreen({super.key, this.categoryId, this.categoryName});
+  const ProductListScreenWrapper({super.key, this.categoryId, this.categoryName});
+
+  @override
+  Widget build(BuildContext context) {
+    // Создаем Provider здесь, НАД экраном
+    return ChangeNotifierProvider(
+      create: (context) => ProductListViewModel(categoryId: categoryId),
+      child: ProductListScreen(categoryName: categoryName),
+    );
+  }
+}
+
+// 2. Сам экран теперь снова StatelessWidget и он "чистый"
+class ProductListScreen extends StatefulWidget {
+  final String? categoryName;
+
+  const ProductListScreen({super.key, this.categoryName});
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
 }
 
 class _ProductListScreenState extends State<ProductListScreen> {
-  final ApiService _apiService = ApiService();
-  final List<Product> _products = [];
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-  int _currentPage = 1;
-  final int _limit = 8; // Количество товаров на страницу
-  String? _error;
-
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
-    _scrollController.addListener(_onScroll);
+    // Мы можем безопасно получить ViewModel здесь, потому что Provider уже создан выше
+    final viewModel = Provider.of<ProductListViewModel>(context, listen: false);
+    _scrollController.addListener(() {
+      _onScroll(viewModel); // Передаем viewModel в обработчик
+    });
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchProducts({bool isRefresh = false}) async {
-    if (_isLoading) return;
-    setState(() {
-      _isLoading = true;
-      if (isRefresh) {
-        _products.clear();
-        _currentPage = 1;
-        _hasMore = true;
-      }
-      _error = null;
-    });
-
-    try {
-      final newProducts = await _apiService.fetchProducts(
-        categoryId: widget.categoryId
-      );
-      setState(() {
-        _products.addAll(newProducts);
-        _isLoading = false;
-        if (newProducts.length < _limit) {
-          _hasMore = false;
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = e.toString();
-        _hasMore = false;
-      });
-    }
-  }
-
-  Future<void> _loadMoreProducts() async {
-    if (_isLoadingMore || !_hasMore || _isLoading) return;
-    setState(() {
-      _isLoadingMore = true;
-    });
-    _currentPage++;
-    try {
-      // Запрашиваем следующую порцию товаров
-      final List<Product> fetchedPage = await _apiService.fetchProducts(
-        categoryId: widget.categoryId
-      );
-
-      final Set<int> existingProductIds = _products.map((p) => p.id).toSet();
-      final List<Product> trulyNewProducts = fetchedPage.where((p) => !existingProductIds.contains(p.id)).toList();
-
-      setState(() {
-        _products.addAll(trulyNewProducts);
-
-        if (fetchedPage.isEmpty) {
-          _hasMore = false;
-        } else if (trulyNewProducts.isEmpty && fetchedPage.isNotEmpty) {
-          _hasMore = false;
-        } else if (fetchedPage.length < _limit) {
-          _hasMore = false;
-        }
-        _isLoadingMore = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingMore = false;
-        print("Ошибка при загрузке дополнительных товаров: $e");
-        _hasMore = false;
-      });
-    }
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent &&
-        _hasMore &&
-        !_isLoadingMore &&
-        !_isLoading) {
-      _loadMoreProducts();
+  void _onScroll(ProductListViewModel viewModel) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent) {
+      viewModel.loadMoreProducts();
     }
   }
 
@@ -123,8 +61,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductDetailScreen(
-          key: ValueKey(product.id),
+        builder: (context) => ProductDetailScreenWrapper(
           productId: product.id,
         ),
       ),
@@ -133,50 +70,65 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Теперь мы используем context.watch, чтобы слушать изменения
+    final viewModel = context.watch<ProductListViewModel>();
+    final state = viewModel.state;
+    final products = viewModel.products;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.categoryName ?? 'Товары'),
       ),
-      body: _buildBody(),
+      body: _buildBody(viewModel, state, products),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading && _products.isEmpty) {
+  Widget _buildBody(ProductListViewModel viewModel, ViewState state, List<Product> products) {
+    if (state == ViewState.loading && products.isEmpty) {
       return const Center(child: CircularProgressIndicator());
-    } else if (_error != null && _products.isEmpty) {
+    }
+
+    if (state == ViewState.error && products.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Ошибка загрузки: $_error'),
+            Text('Ошибка загрузки: ${viewModel.errorMessage}'),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () => _fetchProducts(isRefresh: true),
+              onPressed: () => viewModel.fetchProducts(isRefresh: true),
               child: const Text('Попробовать снова'),
             )
           ],
         ),
       );
-    } else if (_products.isEmpty && !_hasMore) {
-      return const Center(child: Text('Товары не найдены'));
+    }
+
+    if (products.isEmpty && state != ViewState.loading) {
+      return RefreshIndicator(
+        onRefresh: () => viewModel.fetchProducts(isRefresh: true),
+        child: const SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Center(heightFactor: 10, child: Text('Товары в этой категории не найдены')),
+        ),
+      );
     }
 
     return RefreshIndicator(
-      onRefresh: () => _fetchProducts(isRefresh: true),
+      onRefresh: () => viewModel.fetchProducts(isRefresh: true),
       child: ListView.builder(
         controller: _scrollController,
-        itemCount: _products.length + (_hasMore ? 1 : 0), // +1 для индикатора загрузки
+        itemCount: products.length + (viewModel.hasMore ? 1 : 0),
         itemBuilder: (ctx, i) {
-          if (i == _products.length) {
-            return _isLoadingMore
-                ? const Center(child: Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(),
-            ))
-                : const SizedBox.shrink();
+          if (i == products.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
-          final product = _products[i];
+          final product = products[i];
           return ProductListItem(
             product: product,
             onTap: () => _navigateToProductDetail(context, product),
