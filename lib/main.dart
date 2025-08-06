@@ -1,38 +1,39 @@
 import 'package:flutter/material.dart';
-import 'screens/catalog_screen.dart';
+import 'package:provider/provider.dart';
+import 'view_models/catalog_view_model.dart'; // <-- Импортируй ViewModel
+import 'screens/catalog_screen.dart'; // <-- Импортируй экран
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Интернет-магазин',
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.deepOrange,
-          accentColor: Colors.deepOrange,
-        ).copyWith(
-          secondary: Colors.deepOrange,
+    // Оборачиваем MaterialApp в MultiProvider
+    return MultiProvider(
+      providers: [
+        // Здесь мы "предоставляем" CatalogViewModel всему приложению
+        ChangeNotifierProvider(
+          create: (context) => CatalogViewModel(),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          titleTextStyle: TextStyle(fontSize: 30),
+        // Сюда можно добавлять другие ViewModel для других экранов
+        // ChangeNotifierProvider(create: (context) => ProductListViewModel()),
+      ],
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
         ),
-        useMaterial3: true,
+        // Установим CatalogScreen как домашний экран для примера
+        home: const CatalogScreen(),
+        routes: {
+          // если у тебя есть роуты, оставь их
+          CatalogScreen.routeName: (ctx) => const CatalogScreen(),
+        },
       ),
-      home: const CatalogScreen(),
     );
   }
 }
