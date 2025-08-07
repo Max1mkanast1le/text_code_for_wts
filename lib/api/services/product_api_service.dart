@@ -4,8 +4,8 @@ import '../../models/product_detail_model.dart';
 
 class ProductApiService extends BaseApiService {
 
-  Future<List<Product>> fetchProducts({int? categoryId, int page = 1, int limit = 10}) async {
-    String endpoint = 'common/product/list?page=$page&limit=$limit';
+  Future<List<Product>> fetchProducts({int? categoryId, int limit = 20}) async {
+    String endpoint = 'common/product/list?limit=$limit';
     if (categoryId != null) {
       endpoint += '&categoryId=$categoryId';
     }
@@ -17,7 +17,6 @@ class ProductApiService extends BaseApiService {
           .map((item) => Product.fromJson(item as Map<String, dynamic>))
           .toList();
     } else {
-      // Если API по какой-то причине не вернул список, возвращаем пустой
       return [];
     }
   }

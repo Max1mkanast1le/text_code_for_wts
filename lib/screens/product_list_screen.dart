@@ -5,7 +5,7 @@ import '../view_models/product_list_view_model.dart';
 import '../widgets/product_list_item.dart';
 import 'product_detail_screen.dart';
 
-// 1. Делаем виджет-обертку, которая будет создавать Provider
+// Виджет-обертка, который создает и предоставляет ViewModel.
 class ProductListScreenWrapper extends StatelessWidget {
   final int? categoryId;
   final String? categoryName;
@@ -14,52 +14,26 @@ class ProductListScreenWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Создаем Provider здесь, НАД экраном
+    // Создаем Provider здесь, НАД экраном, чтобы экран мог его получить.
     return ChangeNotifierProvider(
       create: (context) => ProductListViewModel(categoryId: categoryId),
+      // Передаем categoryName в сам экран для отображения в AppBar.
       child: ProductListScreen(categoryName: categoryName),
     );
   }
 }
 
-// 2. Сам экран теперь снова StatelessWidget и он "чистый"
-class ProductListScreen extends StatefulWidget {
+class ProductListScreen extends StatelessWidget {
   final String? categoryName;
 
   const ProductListScreen({super.key, this.categoryName});
 
-  @override
-  State<ProductListScreen> createState() => _ProductListScreenState();
-}
-
-class _ProductListScreenState extends State<ProductListScreen> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    final viewModel = Provider.of<ProductListViewModel>(context, listen: false);
-    _scrollController.addListener(() {
-      _onScroll(viewModel);
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll(ProductListViewModel viewModel) {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent) {
-      viewModel.loadMoreProducts();
-    }
-  }
-
+  // Метод для навигации на экран деталей продукта.
   void _navigateToProductDetail(BuildContext context, Product product) {
     Navigator.push(
       context,
       MaterialPageRoute(
+        // Переходим на ProductDetailScreenWrapper, который создаст свой ViewModel.
         builder: (context) => ProductDetailScreenWrapper(
           productId: product.id,
         ),
@@ -69,63 +43,71 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Этот виджет будет автоматически перестраиваться при вызове notifyListeners() в ViewModel.
     final viewModel = context.watch<ProductListViewModel>();
-    final state = viewModel.state;
-    final products = viewModel.products;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.categoryName ?? 'Товары'),
+        title: Text(categoryName ?? 'Товары'),
       ),
-      body: _buildBody(viewModel, state, products),
+      body: _buildBody(context, viewModel),
     );
   }
 
-  Widget _buildBody(ProductListViewModel viewModel, ViewState state, List<Product> products) {
+  // Отдельный метод для построения тела экрана в зависимости от состояния ViewModel.
+  Widget _buildBody(BuildContext context, ProductListViewModel viewModel) {
+    final state = viewModel.state;
+    final products = viewModel.products;
+
+    // 1. Состояние начальной загрузки
     if (state == ViewState.loading && products.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // 2. Состояние ошибки при начальной загрузке
     if (state == ViewState.error && products.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Ошибка загрузки: ${viewModel.errorMessage}'),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => viewModel.fetchProducts(isRefresh: true),
-              child: const Text('Попробовать снова'),
-            )
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Ошибка загрузки:\n${viewModel.errorMessage}',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => viewModel.fetchProducts(),
+                child: const Text('Попробовать снова'),
+              )
+            ],
+          ),
         ),
       );
     }
 
-    if (products.isEmpty && state != ViewState.loading) {
+    // 3. Состояние, когда товары не найдены (список пуст после загрузки)
+    if (products.isEmpty) {
+      // Оборачиваем в RefreshIndicator, чтобы можно было обновить пустой экран.
       return RefreshIndicator(
-        onRefresh: () => viewModel.fetchProducts(isRefresh: true),
+        onRefresh: () => viewModel.fetchProducts(),
         child: const SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
-          child: Center(heightFactor: 10, child: Text('Товары в этой категории не найдены')),
+          child: Center(
+            heightFactor: 10,
+            child: Text('Товары в этой категории не найдены'),
+          ),
         ),
       );
     }
 
+    // 4. Основное состояние: показываем список товаров
     return RefreshIndicator(
-      onRefresh: () => viewModel.fetchProducts(isRefresh: true),
+      onRefresh: () => viewModel.fetchProducts(),
       child: ListView.builder(
-        controller: _scrollController,
-        itemCount: products.length + (viewModel.hasMore ? 1 : 0),
+        itemCount: products.length,
         itemBuilder: (ctx, i) {
-          if (i == products.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
           final product = products[i];
           return ProductListItem(
             product: product,

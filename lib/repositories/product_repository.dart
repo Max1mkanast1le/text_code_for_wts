@@ -4,7 +4,7 @@ import '../models/product_model.dart';
 
 // Абстрактный класс (интерфейс) для репозитория.
 abstract class IProductRepository {
-  Future<List<Product>> getProducts({int? categoryId, int page = 1});
+  Future<List<Product>> getProducts({int? categoryId, int limit});
   Future<ProductDetails> getProductDetails(int productId);
 }
 
@@ -16,14 +16,10 @@ class ProductRepository implements IProductRepository {
       : _apiService = apiService ?? ProductApiService();
 
   @override
-  Future<List<Product>> getProducts({int? categoryId, int page = 1}) async {
-    // В будущем здесь можно добавить логику кэширования:
-    // 1. Проверить, есть ли данные в кэше.
-    // 2. Если есть - вернуть из кэша.
-    // 3. Если нет - запросить из API, сохранить в кэш и вернуть.
+  Future<List<Product>> getProducts({int? categoryId, int limit = 20}) async {
     try {
-      // Пока просто проксируем вызов к API-сервису
-      final products = await _apiService.fetchProducts(categoryId: categoryId, page: page);
+      // Передаем limit в сервис
+      final products = await _apiService.fetchProducts(categoryId: categoryId, limit: limit);
       return products;
     } catch (e) {
       // Здесь можно обрабатывать ошибки специфичные для репозитория
@@ -39,7 +35,7 @@ class ProductRepository implements IProductRepository {
       final details = await _apiService.fetchProductDetails(productId);
       return details;
     } catch (e) {
-      print('Ошибка в ProductRepository.getProductDetails: $e');
+      // print('Ошибка в ProductRepository.getProductDetails: $e');
       rethrow;
     }
   }
