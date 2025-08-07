@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/category_model.dart';
-import '../view_models/catalog_view_model.dart'; // <-- ИМПОРТИРУЕМ VIEWMODEL
+import '../view_models/catalog_view_model.dart';
 import '../widgets/category_grid_item.dart';
 import 'product_list_screen.dart';
 
-class CatalogScreen extends StatelessWidget { // <-- Теперь это StatelessWidget!
+class CatalogScreen extends StatelessWidget {
   static const routeName = '/catalog';
 
   const CatalogScreen({super.key});
 
-  // Логика навигации остается здесь, т.к. она связана с BuildContext
   void _navigateToProductList(BuildContext context, Category category) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ProductListScreenWrapper( // <-- НОВЫЙ ВЫЗОВ
+        builder: (context) => ProductListScreenWrapper(
           categoryId: category.id,
           categoryName: category.name,
         ),
@@ -29,10 +28,8 @@ class CatalogScreen extends StatelessWidget { // <-- Теперь это Statele
       appBar: AppBar(
         title: const Text('Каталог'),
       ),
-      // Используем Consumer, чтобы получить доступ к ViewModel и перестраиваться при изменениях
       body: Consumer<CatalogViewModel>(
         builder: (context, viewModel, child) {
-          // Вместо FutureBuilder, мы просто проверяем состояние ViewModel
           switch (viewModel.state) {
             case ViewState.loading:
               return const Center(child: CircularProgressIndicator());
@@ -59,7 +56,7 @@ class CatalogScreen extends StatelessWidget { // <-- Теперь это Statele
                 ),
               );
             default: // idle state
-              return const SizedBox.shrink(); // или другой виджет по умолчанию
+              return const SizedBox.shrink();
           }
         },
       ),

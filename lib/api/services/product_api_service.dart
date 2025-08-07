@@ -23,14 +23,15 @@ class ProductApiService extends BaseApiService {
   }
 
   Future<ProductDetails> fetchProductDetails(int productId) async {
-    final endpoint = 'common/product/details?id=$productId';
+    final endpoint = 'common/product/details?productId=$productId';
 
     final data = await getRequest(endpoint);
 
     if (data is Map<String, dynamic>) {
       return ProductDetails.fromJson(data);
-    } else {
-      throw Exception('Не удалось разобрать детали продукта: поле "data" не является объектом.');
     }
+
+    // Если API вернул что-то другое (null, не объект)
+    throw Exception('Продукт с ID $productId не найден или неверный формат ответа.');
   }
 }

@@ -38,10 +38,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   void initState() {
     super.initState();
-    // Мы можем безопасно получить ViewModel здесь, потому что Provider уже создан выше
     final viewModel = Provider.of<ProductListViewModel>(context, listen: false);
     _scrollController.addListener(() {
-      _onScroll(viewModel); // Передаем viewModel в обработчик
+      _onScroll(viewModel);
     });
   }
 
@@ -70,7 +69,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Теперь мы используем context.watch, чтобы слушать изменения
     final viewModel = context.watch<ProductListViewModel>();
     final state = viewModel.state;
     final products = viewModel.products;

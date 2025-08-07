@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../models/product_detail_model.dart';
 import '../repositories/product_repository.dart';
 
-// Используем то же перечисление состояний, что и раньше
 enum ViewState { idle, loading, success, error }
 
 class ProductDetailViewModel extends ChangeNotifier {

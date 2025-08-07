@@ -2,11 +2,9 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:wts_app/models/category_model.dart';
 import '../repositories/category_repository.dart';
 
-// Перечисление для отслеживания состояния экрана
 enum ViewState { idle, loading, success, error }
 
 class CatalogViewModel extends ChangeNotifier {
-  // Зависимость от репозитория, а не от API сервиса!
   final ICategoryRepository _categoryRepository;
 
   CatalogViewModel({ICategoryRepository? categoryRepository})
@@ -25,9 +23,7 @@ class CatalogViewModel extends ChangeNotifier {
   List<Category> get categories => _categories;
   String get errorMessage => _errorMessage;
 
-  // Основной метод для загрузки данных
   Future<void> fetchCategories() async {
-    // 1. Устанавливаем состояние "загрузка" и уведомляем слушателей (View)
     _state = ViewState.loading;
     notifyListeners();
 

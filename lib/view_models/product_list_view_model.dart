@@ -2,12 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../models/product_model.dart';
 import '../repositories/product_repository.dart';
 
-// Используем то же перечисление состояний
 enum ViewState { idle, loading, success, error, loadingMore }
 
 class ProductListViewModel extends ChangeNotifier {
   final IProductRepository _repository;
-  final int? categoryId; // Получаем ID категории при создании
+  final int? categoryId;
 
   ProductListViewModel({
     required this.categoryId,
@@ -23,7 +22,7 @@ class ProductListViewModel extends ChangeNotifier {
   String _errorMessage = '';
   bool _hasMore = true;
   int _currentPage = 1;
-  static const int _limit = 8; // Можно вынести в константы
+  static const int _limit = 8;
 
   // --- Геттеры для доступа из View ---
   ViewState get state => _state;
@@ -40,7 +39,7 @@ class ProductListViewModel extends ChangeNotifier {
 
     if (isRefresh) {
       _currentPage = 1;
-      _products = []; // Очищаем список при обновлении
+      _products = [];
       _hasMore = true;
     }
 
@@ -66,7 +65,6 @@ class ProductListViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Загрузка следующей страницы (пагинация)
   Future<void> loadMoreProducts() async {
     if (_state == ViewState.loading || _state == ViewState.loadingMore || !_hasMore) return;
 
@@ -88,9 +86,8 @@ class ProductListViewModel extends ChangeNotifier {
       _state = ViewState.success;
 
     } catch (e) {
-      // Можно обработать ошибку загрузки "еще", не меняя основной список
       _errorMessage = e.toString();
-      _state = ViewState.error; // или оставить success, чтобы не показывать ошибку на весь экран
+      _state = ViewState.error;
     }
     notifyListeners();
   }

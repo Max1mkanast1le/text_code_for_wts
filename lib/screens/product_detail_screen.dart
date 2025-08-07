@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/product_detail_view_model.dart';
-import '../widgets/image_carousel.dart'; // <-- Импортируем наш новый виджет
+import '../widgets/image_carousel.dart';
 
 // Обертка для создания провайдера
 class ProductDetailScreenWrapper extends StatelessWidget {
@@ -24,12 +24,10 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Получаем ViewModel из Provider'а
     final viewModel = context.watch<ProductDetailViewModel>();
 
     return Scaffold(
       appBar: AppBar(
-        // Заголовок обновляется в зависимости от состояния
         title: Text(viewModel.state == ViewState.success
             ? viewModel.productDetails?.name ?? 'Детали'
             : 'Загрузка...'),
@@ -54,7 +52,6 @@ class ProductDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // Используем наш новый чистый виджет
               ImageCarousel(images: product.images),
               const SizedBox(height: 20),
               Text(
